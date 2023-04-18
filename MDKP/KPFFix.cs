@@ -10,7 +10,7 @@ namespace KPF
 {
     internal class MDKPCplexEXT
     {
-        public KPFSolution.MDKPItemStatus[] mStates;
+        public KPFSolution.KPFItemStatus[] mStates;
         public int                           mNumElements;
         public KPFSolution                  mHotStart;
         public List<int[]>                    mPairs;
@@ -31,7 +31,7 @@ namespace KPF
             InitAll();
         }
 
-        public MDKPCplexEXT(KPFSolution.MDKPItemStatus[] iStates)
+        public MDKPCplexEXT(KPFSolution.KPFItemStatus[] iStates)
         {
             InitAll();
             mStates = iStates;

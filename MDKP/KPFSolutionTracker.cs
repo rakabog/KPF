@@ -25,7 +25,7 @@ namespace KPF
             get { return mSolutions.Count; }
         }
 
-        public KPFSolution GetBestFit(KPFSolution.MDKPItemStatus[] iStates) {
+        public KPFSolution GetBestFit(KPFSolution.KPFItemStatus[] iStates) {
             bool Fit;
 
             for (int i = 0; i < mSolutions.Count; i++) {
@@ -33,7 +33,7 @@ namespace KPF
                 Fit = true;
                 for (int j = 0; j < mInstance.NumItems; j++) {
 
-                    if ((iStates[j] != KPFSolution.MDKPItemStatus.Unknown) && (iStates[j] != mSolutions[i].ItemStatuses[j]))
+                    if ((iStates[j] != KPFSolution.KPFItemStatus.Unknown) && (iStates[j] != mSolutions[i].ItemStatuses[j]))
                     {
                         Fit = false;
                         break;
@@ -71,26 +71,26 @@ namespace KPF
         
             return mSolutions[Index];
         }
-        public KPFSolution.MDKPItemStatus[] GetStatusFix() {
+        public KPFSolution.KPFItemStatus[] GetStatusFix() {
 
-            KPFSolution.MDKPItemStatus[] Result = new KPFSolution.MDKPItemStatus[mInstance.NumItems];
+            KPFSolution.KPFItemStatus[] Result = new KPFSolution.KPFItemStatus[mInstance.NumItems];
             int UsedCounter = 0;
             int NotUsedCounter = 0;
             for (int i = 0; i < mInstance.NumItems; i++) {
 
                 if (mUsedCounter[i] == mSolutions.Count)
                 {
-                    Result[i] = KPFSolution.MDKPItemStatus.Using;
+                    Result[i] = KPFSolution.KPFItemStatus.Using;
                     UsedCounter++;
                     continue;
                 }
                 if (mNotUsedCounter[i] == mSolutions.Count)
                 {
-                    Result[i] = KPFSolution.MDKPItemStatus.NotUsing;
+                    Result[i] = KPFSolution.KPFItemStatus.NotUsing;
                     NotUsedCounter++;
                     continue;
                 }
-                Result[i] = KPFSolution.MDKPItemStatus.Unknown;
+                Result[i] = KPFSolution.KPFItemStatus.Unknown;
             }
 
             return Result;
@@ -139,10 +139,10 @@ namespace KPF
         }
 
 
-        public KPFSolution.MDKPItemStatus[] GetFix(int BaseIndex, List<int> TestIndexes, int Size, Random iGenerator) {
+        public KPFSolution.KPFItemStatus[] GetFix(int BaseIndex, List<int> TestIndexes, int Size, Random iGenerator) {
 
             KPFSolution Base = mSolutions[BaseIndex];
-            KPFSolution.MDKPItemStatus[] Fix = new KPFSolution.MDKPItemStatus[mInstance.NumItems];
+            KPFSolution.KPFItemStatus[] Fix = new KPFSolution.KPFItemStatus[mInstance.NumItems];
             List<int[]>      Tracker = new List<int[]>();
             int[] temp;
             for (int i = 0; i < mInstance.NumItems; i++) {
@@ -182,7 +182,7 @@ namespace KPF
             for (int i = 0; i < mInstance.NumItems; i++)
             {
 
-                Fix[i] = KPFSolution.MDKPItemStatus.Unknown;
+                Fix[i] = KPFSolution.KPFItemStatus.Unknown;
             }
 
             for (int i = 0; i < Size; i++) {
@@ -203,7 +203,7 @@ namespace KPF
 
                 for (int i = 0; i < mInstance.NumItems; i++) {
 
-                    if (Sol.ItemStatuses[i] == KPFSolution.MDKPItemStatus.Using)
+                    if (Sol.ItemStatuses[i] == KPFSolution.KPFItemStatus.Using)
                         mUsedCounter[i]++;
                     else
                         mNotUsedCounter[i]++;

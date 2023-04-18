@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
+using System.IO;
 
 namespace KPF
 {
@@ -12,9 +13,10 @@ namespace KPF
     {
         string   mInstancesDirectory;
         string   mOutputDirectory;
-        List<string> mFilenames;
+        List<string> mProbleTypes;
+        List<int> mProbleSizes;
         int      mNumInstances;
-
+            
 
         public KPFExperiments() {
         
@@ -22,21 +24,23 @@ namespace KPF
         }
 
         void InitFiles() {
-             mInstancesDirectory = "c:\\\\primeri\\\\MDKP\\\\";
-            mOutputDirectory = "c:\\\\primeri\\\\MDKP\\\\Results\\\\";
-             mFilenames = new List<string>();
+             mInstancesDirectory = "c:\\\\primeri\\\\KPF\\\\";
+            mOutputDirectory = "c:\\\\primeri\\\\KPF\\\\Results\\\\";
+             mProbleSizes = new List<int>();
 
-                        mFilenames.Add("mknapcb2");
-                        mFilenames.Add("mknapcb3");
+            mProbleSizes.Add(500);
+            mProbleSizes.Add(700);
+            mProbleSizes.Add(800);
+            mProbleSizes.Add(1000);
 
-            mFilenames.Add("mknapcb5");
-            mFilenames.Add("mknapcb6");
+            mProbleTypes = new List<string>();
+            mProbleTypes.Add("O");
+            mProbleTypes.Add("LK");
+            mProbleTypes.Add("MF");
 
 
-            mFilenames.Add("mknapcb8");
-            mFilenames.Add("mknapcb9");
 
-            mNumInstances = 30;
+            mNumInstances = 40;
 
         }
         /*
@@ -207,101 +211,100 @@ namespace KPF
 
         }
         */
-        /*
+        
         public void SolveAll() {
 
             KPFProblem TestProblem;
             KPFInstance TestInstance = new KPFInstance();
 
-            int             PopupationSize        = 100;
-            int             MaxItems              =100;
+            int             PopupationSize        = 200;
+            int             MaxBinVar              =1000;
             double          LimitPerFix           = 0.1;
             int             MaxGeneratedSolutions = 500000;
             int             MaxStag = 50;
-            long            TimeLimit             = 600 ;
+            long            TimeLimit             = 600;
             int             K = 5;
 
 
-            //            TestInstance.Load_CB("c:\\primeri\\MDKP\\mknapcb9.txt", 20);
-            //            MDKPCplex T = new MDKPCplex(TestInstance);
-            //            T.TimeLimit = 400;
-            //       MDKPFix Fix = new MDKPFix(63);
-            //          T.Solve();
-
-            //       int a = T.Solution.GetNumberOfUsedItems();
-            //       int b = T.Solution.CalculateObjective();
-
-            //            MDKPProblem Problem = new MDKPProblem(TestInstance);
-
+            
             InitFiles();
             string cResDirectory;
-            string configString = "Res_P" + PopupationSize + "_MI" + MaxItems + "_TLF" + LimitPerFix + "_K" + K+"_M"+ MaxStag;
-            string OptFile;
+            string configString = "Res_P" + PopupationSize + "_MI" + MaxBinVar + "_TLF" + LimitPerFix + "_K" + K+"_M"+ MaxStag;
+            string OutFile;
             string tFileName;
+//            int s = 1;
+            string cDirectory;
+            string[] filePaths;
 
-            for (int s = 0; s < 10; s++)
-            {
-                foreach (string iFile in mFilenames)
+            for(int s=0; s<10; s++) {
+                foreach (int size in mProbleSizes)
                 {
-
-                    cResDirectory = mInstancesDirectory + configString + "\\\\";
-                    if (!System.IO.Directory.Exists(cResDirectory))
-                    {
-                        System.IO.Directory.CreateDirectory(cResDirectory);
-                    }
-
-                    for (int i = 0; i < mNumInstances; i++)
+                    foreach (string ptype in mProbleTypes)
                     {
 
-                        TestInstance = new KPFInstance();
-                        TestInstance.Load(mInstancesDirectory + iFile + ".txt", i);
-                        TestProblem = new KPFProblem(TestInstance);
-                        TestProblem.InitRandom(s);
-                        OptFile = mInstancesDirectory + "Res_" + TestInstance.NumItems + "_" + TestInstance.NumConstraints + ".csv";
-                        TestInstance.LoadOptimum(OptFile, i);
-                        TestProblem.TimeLimit = TimeLimit * 1000;
 
-                        
+                        cResDirectory = mInstancesDirectory + configString + "\\\\";
+                        if (!System.IO.Directory.Exists(cResDirectory))
+                        {
+                            System.IO.Directory.CreateDirectory(cResDirectory);
+                        }
 
-                        tFileName = cResDirectory + "Res" + iFile + "_" + i + "_" + MaxStag + "_" + s + ".txt";
+                        cDirectory = mInstancesDirectory + ptype + "\\\\" + size + "\\\\";
+                        filePaths = Directory.GetFiles(cDirectory);
 
-                        if (File.Exists(tFileName))
-                            continue;
-                        TestProblem.SolveFixSet(PopupationSize, K, MaxGeneratedSolutions, MaxItems, MaxStag, LimitPerFix);
-                        TestProblem.SaveIntermediate(tFileName);
+                        for (int fi = 0; fi < filePaths.Length; fi++)
+                        {       
+
+                            TestInstance = new KPFInstance();
+                            TestInstance.Load(filePaths[fi]);
+                            TestProblem = new KPFProblem(TestInstance);
+                            TestProblem.InitRandom(s);
+                            //   OutFile = mInstancesDirectory+"Results\\\\" + "Res_" + ptype + "_" + size + "_"+fi+".txt" ;
+                            OutFile = cResDirectory + "Res_" + ptype + "_" + size + "_" + fi+"_"+s + ".txt";
+                            // TestInstance.LoadOptimum(OptFile, i);
+
+
+
+                            //                        TimeLimit = size/2;
+
+                            TestProblem.TimeLimit = TimeLimit * 1000;
+
+                            if (File.Exists(OutFile))
+                                continue;
+                            TestProblem.SolveFixSet(PopupationSize, K, MaxGeneratedSolutions, MaxBinVar, MaxStag, LimitPerFix);
+                            TestProblem.SaveIntermediate(OutFile);
+
+                        }
 
                     }
                 }
-            }
+            }   
+            
             
         }
+       
 
-
-        public void LoadAllResults(string FileName, int NumInstances,out double[][] Results, out string[] InstanceNames) {
+        public void LoadAllResults(string FileName, int NumInstances,out double[][] Results) {
 
             string[] Lines = File.ReadAllLines(FileName);
             string[] words;
             double cValue;
 
             Results = new double[NumInstances][];
-            InstanceNames = new string[NumInstances];
+//            InstanceNames = new string[NumInstances];
 
             for (int i = 0; i < NumInstances; i++) {
 
-                words = Lines[i].Split(',');
+                words = Lines[i+1].Split(',');
 
-                InstanceNames[i] = words[0];
+//                InstanceNames[i] = words[0];
 
-                Results[i] = new double[ words.Length - 1];
+                Results[i] = new double[ words.Length];
                 double.TryParse(words[1], out Results[i][0]);
-                for (int j = 2; j < words.Length; j++) {
+                for (int j = 0; j < words.Length; j++) {
 
                     double.TryParse(words[j], out cValue);
-
-//                    Results[i][j - 1] = cValue;
-
-                    
-                    Results[i][j - 1] =  Results[i][0] - cValue;
+                    Results[i][j] = cValue;
                 }
 
             }
@@ -341,16 +344,16 @@ namespace KPF
         }
 
 
-        */
-        /*
+        
+
         public void GenerateTables(string OutputFile)
         {
 
             KPFProblem TestProblem;
             KPFInstance TestInstance = new KPFInstance();
-
-            int PopupationSize = 100;
-            int MaxItems = 100;
+            
+            int PopupationSize = 200;
+            int MaxItems = 1000;
             double LimitPerFix = 0.1;
             int MaxGeneratedSolutions = 500000;
             int MaxStag = 50;
@@ -358,13 +361,13 @@ namespace KPF
             int K = 5;
 
             StreamWriter F = new StreamWriter(OutputFile);
+            string configString = "Res_P" + PopupationSize + "_MI" + MaxItems + "_TLF" + LimitPerFix + "_K" + K + "_M" + MaxStag;
 
 
 
 
             InitFiles();
             string cResDirectory;
-            string configString = "Res_P" + PopupationSize + "_MI" + MaxItems + "_TLF" + LimitPerFix + "_K" + K + "_M" + MaxStag;
             string MethodsFile;
             string tFileName;
             double[][] MethodValues;
@@ -394,20 +397,79 @@ namespace KPF
             double AVGAvgAll;
 
             int StartTableTime = 8;
+            int in_couter;
+            string cLine;
+            foreach (string itype in mProbleTypes)
+            {
+
+                MethodsFile = mInstancesDirectory + "ResKPF" + itype + ".csv";
+                LoadAllResults(MethodsFile, 40, out MethodValues);
+
+                in_couter = 0;
+                F.WriteLine("*******" + itype + "*******");
+                foreach (int isize in mProbleSizes)
+                {
+                    for (int iinstance = 0; iinstance < 10; iinstance++)
+                    {
+                        counter = 0;
+
+                        Sum = 0;
+
+                        for (int s = 0; s < 10; s++)
+                        {
+                            cResDirectory = mInstancesDirectory + configString + "\\\\";
+                            tFileName = cResDirectory + "Res_" + itype + "_" + isize + "_"+ iinstance+ "_" + s + ".txt";
+
+                            if (File.Exists(tFileName))
+                            {
+
+                                cSolution = GetBestSolution(tFileName);
+
+                                Sum += cSolution;
+                                if (cSolution > Best[in_couter])
+                                    Best[in_couter] = cSolution;
+                                counter++;
+                            }
+
+                        }
+
+                        Avg[in_couter] = Sum / counter;
+                        in_couter++;
+                    }
 
 
+                    
 
 
+                }
 
+                for (int i = 0; i < 40; i++)
+                {
+                    cLine = "";
+                    for (int j = 0; j < MethodValues[i].Length; j++)
+                    {
+                        cLine += MethodValues[i][j] + " & ";
+                    }
+                    cLine += Best[i] + " & ";
+                    cLine += Avg[i].ToString("0.0") + "\\\\ ";
+
+                    F.WriteLine(cLine);
+                }
+
+            }
+            F.Close();
+
+            
+        
+        }
+        /*
             foreach (string iFile in mFilenames)
             {
 
                 F.WriteLine(iFile);
 
-                TestInstance = new KPFInstance();
-                TestInstance.Load(mInstancesDirectory + iFile + ".txt", 0);
 
-                MethodsFile = mInstancesDirectory + "DQPSORes_" + TestInstance.NumItems + "_" + TestInstance.NumConstraints + ".csv";
+                MethodsFile = mInstancesDirectory + Type + TestInstance.NumItems + "_" + TestInstance.NumConstraints + ".csv";
                 LoadAllResults(MethodsFile, 30, out MethodValues, out InstanceNames);
 
                 AVGBestAll = 0;
@@ -417,7 +479,8 @@ namespace KPF
 
                 AvgAllMethods = new double[MethodValues[0].Length];
 
-                for (int i = 0; i < AvgAllMethods.Length; i++) {
+                for (int i = 0; i < AvgAllMethods.Length; i++)
+                {
                     AvgAllMethods[i] = 0;
                 }
 
@@ -434,6 +497,7 @@ namespace KPF
                     {
                         AvgAllMethods[j] += MethodValues[i][j];
                     }
+                }
                     /*
                     if (TestInstance.NumItems == 500)
                     {
@@ -453,390 +517,390 @@ namespace KPF
                     else
                     {
                     */
-           /*             NumBest = 5;
-                        NumAvg = 3;
+        /*             NumBest = 5;
+                     NumAvg = 3;
 
-                    //}
+                 //}
 
 
 
-                    for (int s = 0; s < 10; s++)
-                    {
-                        cResDirectory = mInstancesDirectory + configString + "\\\\";
-                        tFileName = cResDirectory + "Res" + iFile + "_" + i + "_" + MaxStag + "_" + s + ".txt";
+                 for (int s = 0; s < 10; s++)
+                 {
+                     cResDirectory = mInstancesDirectory + configString + "\\\\";
+                     tFileName = cResDirectory + "Res" + iFile + "_" + i + "_" + MaxStag + "_" + s + ".txt";
 
-                        if (File.Exists(tFileName))
-                        {
+                     if (File.Exists(tFileName))
+                     {
 
-                            cSolution = GetBestSolution(tFileName);
+                         cSolution = GetBestSolution(tFileName);
 
-                            Sum += cSolution;
-                            if (cSolution > Best[i])
-                                Best[i] = cSolution;
-                            counter++;
-                        }
+                         Sum += cSolution;
+                         if (cSolution > Best[i])
+                             Best[i] = cSolution;
+                         counter++;
+                     }
 
-                    }
+                 }
 
-                    Avg[i] = Sum / counter;
-                    Avg[i] = MethodValues[i][0] - Avg[i];
-                    Best[i] = (int)MethodValues[i][0] - Best[i];
+                 Avg[i] = Sum / counter;
+                 Avg[i] = MethodValues[i][0] - Avg[i];
+                 Best[i] = (int)MethodValues[i][0] - Best[i];
 
-                    AVGBestAll += Best[i];
-                    AVGAvgAll += Avg[i];
+                 AVGBestAll += Best[i];
+                 AVGAvgAll += Avg[i];
 
-                    //                        Line = iInstanceNames[i] + "&";
-                    Line = i + "&";
+                 //                        Line = iInstanceNames[i] + "&";
+                 Line = i + "&";
 
-                    string AddS;
+                 string AddS;
 
-                    for (int k = 0; k < NumBest + 1; k++) {
+                 for (int k = 0; k < NumBest + 1; k++) {
 
-                        Line += (int)(MethodValues[i][k]) + "&";
-                    }
-                        Line += Best[i] + "&";
+                     Line += (int)(MethodValues[i][k]) + "&";
+                 }
+                     Line += Best[i] + "&";
 //                                Line += Best[i] + "\\\\";
-                        for (int k = NumBest+1; k < NumBest+NumAvg+1; k++)
-                        {
+                     for (int k = NumBest+1; k < NumBest+NumAvg+1; k++)
+                     {
 
-                        Line += MethodValues[i][k].ToString("0.00") + "&";
-                        }
-                        Line += Avg[i].ToString("0.00")+"\\\\";
-                    
-                        F.WriteLine(Line);
-                    }
+                     Line += MethodValues[i][k].ToString("0.00") + "&";
+                     }
+                     Line += Avg[i].ToString("0.00")+"\\\\";
 
-                    Line = "\\midrule";
-                    F.WriteLine(Line);
-        //            Avg.Average();
+                     F.WriteLine(Line);
+                 }
 
+                 Line = "\\midrule";
+                 F.WriteLine(Line);
+     //            Avg.Average();
 
 
-                CounterAvgBetter = new int[NumAvg];
-                CounterAvgWorse = new int[NumAvg];
-                CounterAvgEqual = new int[NumAvg];
 
+             CounterAvgBetter = new int[NumAvg];
+             CounterAvgWorse = new int[NumAvg];
+             CounterAvgEqual = new int[NumAvg];
 
-                CounterBestBetter = new int[NumBest];
-                CounterBestWorse = new int[NumBest];
-                CounterBestEqual = new int[NumBest];
 
+             CounterBestBetter = new int[NumBest];
+             CounterBestWorse = new int[NumBest];
+             CounterBestEqual = new int[NumBest];
 
-                for (int k = 0; k < NumBest; k++)
 
-                {
-                    CounterBestBetter[k] =0;
-                    CounterBestWorse[k] = 0;
-                    CounterBestEqual[k] = 0;
+             for (int k = 0; k < NumBest; k++)
 
-                }
+             {
+                 CounterBestBetter[k] =0;
+                 CounterBestWorse[k] = 0;
+                 CounterBestEqual[k] = 0;
 
+             }
 
-                for (int k = 0; k < NumAvg; k++)
 
-                {
-                    CounterAvgBetter[k] = 0;
-                    CounterAvgWorse[k] = 0;
-                    CounterAvgEqual[k] = 0;
+             for (int k = 0; k < NumAvg; k++)
 
-                }
+             {
+                 CounterAvgBetter[k] = 0;
+                 CounterAvgWorse[k] = 0;
+                 CounterAvgEqual[k] = 0;
 
+             }
 
-                for (int k = 1; k < NumBest + 1; k++)
-                    {
-                        for (int kk = 0; kk < mNumInstances; kk++) { 
-                    
-                            if(MethodValues[kk][k] == Best[kk])
-                                CounterBestEqual[k-1]++;
 
-                            if (MethodValues[kk][k] < Best[kk])
-                                CounterBestBetter[k-1]++;
+             for (int k = 1; k < NumBest + 1; k++)
+                 {
+                     for (int kk = 0; kk < mNumInstances; kk++) { 
 
-                            if (MethodValues[kk][k] > Best[kk])
-                                CounterBestWorse[k-1]++;
+                         if(MethodValues[kk][k] == Best[kk])
+                             CounterBestEqual[k-1]++;
 
+                         if (MethodValues[kk][k] < Best[kk])
+                             CounterBestBetter[k-1]++;
 
-                    }
+                         if (MethodValues[kk][k] > Best[kk])
+                             CounterBestWorse[k-1]++;
 
-                }
 
-                for (int k = 0; k < NumAvg; k++)
-                {
-                    for (int kk = 0; kk < mNumInstances; kk++)
-                    {
+                 }
 
-                        if (MethodValues[kk][k+ NumBest + 1] ==Avg[kk])
-                            CounterAvgEqual[k]++;
+             }
 
-                        if (MethodValues[kk][k+NumBest + 1] < Avg[kk])
-                            CounterAvgBetter[k]++;
+             for (int k = 0; k < NumAvg; k++)
+             {
+                 for (int kk = 0; kk < mNumInstances; kk++)
+                 {
 
-                        if (MethodValues[kk][k+ NumBest + 1] > Avg[kk])
-                            CounterAvgWorse[k]++;
+                     if (MethodValues[kk][k+ NumBest + 1] ==Avg[kk])
+                         CounterAvgEqual[k]++;
 
+                     if (MethodValues[kk][k+NumBest + 1] < Avg[kk])
+                         CounterAvgBetter[k]++;
 
-                    }
+                     if (MethodValues[kk][k+ NumBest + 1] > Avg[kk])
+                         CounterAvgWorse[k]++;
 
-                }
 
-                AVGBestAll /= mNumInstances;
-                AVGAvgAll /= mNumInstances;
+                 }
 
-                for (int j = 0; j < AvgAllMethods.Length; j++) {
+             }
 
-                    AvgAllMethods[j] /= mNumInstances;
-                }
+             AVGBestAll /= mNumInstances;
+             AVGAvgAll /= mNumInstances;
 
-                Line = "Avg. &  &";
-                for (int k = 1; k < NumBest + 1; k++)
-                {
-                    Line += AvgAllMethods[k].ToString("0.00") + "&";
+             for (int j = 0; j < AvgAllMethods.Length; j++) {
 
-                }
+                 AvgAllMethods[j] /= mNumInstances;
+             }
 
-                Line += AVGBestAll.ToString("0.00") + " & ";
+             Line = "Avg. &  &";
+             for (int k = 1; k < NumBest + 1; k++)
+             {
+                 Line += AvgAllMethods[k].ToString("0.00") + "&";
 
-                for (int k = NumBest + 1; k < NumBest + NumAvg+1; k++)
-                {
-                    Line += AvgAllMethods[k].ToString("0.00") + "&";
+             }
 
-                }
+             Line += AVGBestAll.ToString("0.00") + " & ";
 
-                Line += AVGAvgAll.ToString("0.00") ;
+             for (int k = NumBest + 1; k < NumBest + NumAvg+1; k++)
+             {
+                 Line += AvgAllMethods[k].ToString("0.00") + "&";
 
+             }
 
-                Line += " \\\\ ";
-                F.WriteLine(Line);
+             Line += AVGAvgAll.ToString("0.00") ;
 
 
+             Line += " \\\\ ";
+             F.WriteLine(Line);
 
-                Line = "\\#worse &  &";
-                for (int k = 1; k < NumBest + 1; k++)
-                {
-                    Line += CounterBestWorse[k - 1] + "&";
 
-                }
-                Line += " & ";
 
-                for (int k = 0; k < NumAvg; k++)
-                {
-                    Line += CounterAvgWorse[k] + "&";
+             Line = "\\#worse &  &";
+             for (int k = 1; k < NumBest + 1; k++)
+             {
+                 Line += CounterBestWorse[k - 1] + "&";
 
-                }
+             }
+             Line += " & ";
 
+             for (int k = 0; k < NumAvg; k++)
+             {
+                 Line += CounterAvgWorse[k] + "&";
 
-                Line += "\\\\";
-                F.WriteLine(Line);
+             }
 
-                Line = "\\#equal &  &";
-                for (int k = 1; k < NumBest + 1; k++)
-                {
-                    Line += CounterBestEqual[k - 1] + "&";
 
-                }
+             Line += "\\\\";
+             F.WriteLine(Line);
 
-                Line += " & ";
-                for (int k = 0; k < NumAvg; k++)
-                {
-                    Line += CounterAvgEqual[k] + "&";
+             Line = "\\#equal &  &";
+             for (int k = 1; k < NumBest + 1; k++)
+             {
+                 Line += CounterBestEqual[k - 1] + "&";
 
-                }
+             }
 
+             Line += " & ";
+             for (int k = 0; k < NumAvg; k++)
+             {
+                 Line += CounterAvgEqual[k] + "&";
 
-                Line += "\\\\";
-                F.WriteLine(Line);
+             }
 
 
+             Line += "\\\\";
+             F.WriteLine(Line);
 
-                Line = "\\#better &  &";
-                for (int k = 1; k < NumBest + 1; k++)
-                {
-                    Line += CounterBestBetter[k - 1] + "&";
 
-                }
 
-                Line += "  &";
-                for (int k = 0; k < NumAvg; k++)
-                {
-                    Line += CounterAvgBetter[k] + "&";
+             Line = "\\#better &  &";
+             for (int k = 1; k < NumBest + 1; k++)
+             {
+                 Line += CounterBestBetter[k - 1] + "&";
 
-                }
+             }
 
+             Line += "  &";
+             for (int k = 0; k < NumAvg; k++)
+             {
+                 Line += CounterAvgBetter[k] + "&";
 
-                Line += "\\\\";
-                F.WriteLine(Line);
+             }
 
-            }
-            F.Close();
-        }
 
-        public void GenerateTimeTable(string OutputFile)
-        {
+             Line += "\\\\";
+             F.WriteLine(Line);
 
-            KPFProblem TestProblem;
-            KPFInstance TestInstance = new KPFInstance();
+         }
+         F.Close();
+     }
 
-            int PopupationSize = 100;
-            int MaxItems = 100;
-            double LimitPerFix = 0.1;
-            int MaxGeneratedSolutions = 500000;
-            int MaxStag = 50;
-            long TimeLimit = 600;
-            int K = 5;
+     public void GenerateTimeTable(string OutputFile)
+     {
 
-            StreamWriter F = new StreamWriter(OutputFile);
+         KPFProblem TestProblem;
+         KPFInstance TestInstance = new KPFInstance();
 
+         int PopupationSize = 100;
+         int MaxItems = 100;
+         double LimitPerFix = 0.1;
+         int MaxGeneratedSolutions = 500000;
+         int MaxStag = 50;
+         long TimeLimit = 600;
+         int K = 5;
 
+         StreamWriter F = new StreamWriter(OutputFile);
 
-            
-            InitFiles();
-            string cResDirectory;
-            string configString = "Res_P" + PopupationSize + "_MI" + MaxItems + "_TLF" + LimitPerFix + "_K" + K + "_M" + MaxStag;
-            string MethodsFile;
-            string tFileName;
-            double[][] MethodValues;
-            double[] cValues;
-            int cSolution;
-            double Sum = 0;
-            int[] Best = new int[mNumInstances];
-            int counter;
-            double[] Avg = new double[mNumInstances];
-            string[] InstanceNames;
-            string Line;
-            int NumBest = -1;
-            int NumAvg = -1;
-            double[] AvgAvgMethod = new double[mNumInstances];
-            double[] AvgBestMethod = new double[mNumInstances];
 
-            int[] CounterAvgBetter = new int[mNumInstances];
-            int[] CounterAvgWorse = new int[mNumInstances];
-            int[] CounterAvgEqual = new int[mNumInstances];
 
 
-            int[] CounterBestBetter = new int[mNumInstances];
-            int[] CounterBestWorse = new int[mNumInstances];
-            int[] CounterBestEqual = new int[mNumInstances];
-            double[] AvgAllMethods;
-            double AVGBestAll;
-            double AVGAvgAll;
+         InitFiles();
+         string cResDirectory;
+         string configString = "Res_P" + PopupationSize + "_MI" + MaxItems + "_TLF" + LimitPerFix + "_K" + K + "_M" + MaxStag;
+         string MethodsFile;
+         string tFileName;
+         double[][] MethodValues;
+         double[] cValues;
+         int cSolution;
+         double Sum = 0;
+         int[] Best = new int[mNumInstances];
+         int counter;
+         double[] Avg = new double[mNumInstances];
+         string[] InstanceNames;
+         string Line;
+         int NumBest = -1;
+         int NumAvg = -1;
+         double[] AvgAvgMethod = new double[mNumInstances];
+         double[] AvgBestMethod = new double[mNumInstances];
 
-            double[] cMFSSTimes = new double[10];
-            double[] MFSSTimes = new double[mNumInstances];
-            double[][] MethodTimes = new double[3][];
-            
-            double average;
-            double sumOfSquaresOfDifferences;
-            double sd;
+         int[] CounterAvgBetter = new int[mNumInstances];
+         int[] CounterAvgWorse = new int[mNumInstances];
+         int[] CounterAvgEqual = new int[mNumInstances];
 
 
-            for (int i = 0; i < 3; i++)
-                MethodTimes[i] = new double[mNumInstances];
+         int[] CounterBestBetter = new int[mNumInstances];
+         int[] CounterBestWorse = new int[mNumInstances];
+         int[] CounterBestEqual = new int[mNumInstances];
+         double[] AvgAllMethods;
+         double AVGBestAll;
+         double AVGAvgAll;
 
+         double[] cMFSSTimes = new double[10];
+         double[] MFSSTimes = new double[mNumInstances];
+         double[][] MethodTimes = new double[3][];
 
+         double average;
+         double sumOfSquaresOfDifferences;
+         double sd;
 
-            foreach (string iFile in mFilenames)
-            {
+
+         for (int i = 0; i < 3; i++)
+             MethodTimes[i] = new double[mNumInstances];
+
+
+
+         foreach (string iFile in mFilenames)
+         {
 
 //                F.WriteLine(iFile);
 
-                TestInstance = new KPFInstance();
-                TestInstance.Load_CB(mInstancesDirectory + iFile + ".txt", 0);
+             TestInstance = new KPFInstance();
+             TestInstance.Load_CB(mInstancesDirectory + iFile + ".txt", 0);
 
-                MethodsFile = mInstancesDirectory + "DQPSORes_" + TestInstance.NumItems + "_" + TestInstance.NumConstraints + ".csv";
-                LoadAllResults(MethodsFile, 30, out MethodValues, out InstanceNames);
+             MethodsFile = mInstancesDirectory + "DQPSORes_" + TestInstance.NumItems + "_" + TestInstance.NumConstraints + ".csv";
+             LoadAllResults(MethodsFile, 30, out MethodValues, out InstanceNames);
 
-                AVGBestAll = 0;
-                AVGAvgAll = 0;
+             AVGBestAll = 0;
+             AVGAvgAll = 0;
 
-                AvgAllMethods = new double[MethodValues[0].Length];
+             AvgAllMethods = new double[MethodValues[0].Length];
 
-                for (int i = 0; i < AvgAllMethods.Length; i++)
-                {
-                    AvgAllMethods[i] = 0;
-                }
+             for (int i = 0; i < AvgAllMethods.Length; i++)
+             {
+                 AvgAllMethods[i] = 0;
+             }
 
-                for (int i = 0; i < mNumInstances; i++)
-                {
-                    Sum = 0;
-                    Best[i] = int.MinValue;
-                    counter = 0;
+             for (int i = 0; i < mNumInstances; i++)
+             {
+                 Sum = 0;
+                 Best[i] = int.MinValue;
+                 counter = 0;
 
-                    TestInstance = new KPFInstance();
-                    TestInstance.Load_CB(mInstancesDirectory + iFile + ".txt", i);
+                 TestInstance = new KPFInstance();
+                 TestInstance.Load_CB(mInstancesDirectory + iFile + ".txt", i);
 
-                    for (int j = 9; j < 11; j++)
-                    {
-                        //                        AvgAllMethods[j-8] += 
-                        MethodTimes[j - 9][i] = MethodValues[i][j] / 2;
-                    }
-
-
-
-                    for (int s = 0; s < 10; s++)
-                    {
-                        cResDirectory = mInstancesDirectory + configString + "\\\\";
-                        tFileName = cResDirectory + "Res" + iFile + "_" + i + "_" + MaxStag + "_" + s + ".txt";
-
-                        if (File.Exists(tFileName))
-                        {
-                            cMFSSTimes[s] = GetTimeBestSolution(tFileName) / 1000;
-                        }
-
-                    }
-                    average = cMFSSTimes.Average();
-                    sumOfSquaresOfDifferences = MFSSTimes.Select(val => (val - average) * (val - average)).Sum();
-                    sd = Math.Sqrt(sumOfSquaresOfDifferences / MFSSTimes.Length);
-                    MethodTimes[2][i] = cMFSSTimes.Average();
-                    MFSSTimes[i] = cMFSSTimes.Average();
+                 for (int j = 9; j < 11; j++)
+                 {
+                     //                        AvgAllMethods[j-8] += 
+                     MethodTimes[j - 9][i] = MethodValues[i][j] / 2;
+                 }
 
 
 
-                }
+                 for (int s = 0; s < 10; s++)
+                 {
+                     cResDirectory = mInstancesDirectory + configString + "\\\\";
+                     tFileName = cResDirectory + "Res" + iFile + "_" + i + "_" + MaxStag + "_" + s + ".txt";
+
+                     if (File.Exists(tFileName))
+                     {
+                         cMFSSTimes[s] = GetTimeBestSolution(tFileName) / 1000;
+                     }
+
+                 }
+                 average = cMFSSTimes.Average();
+                 sumOfSquaresOfDifferences = MFSSTimes.Select(val => (val - average) * (val - average)).Sum();
+                 sd = Math.Sqrt(sumOfSquaresOfDifferences / MFSSTimes.Length);
+                 MethodTimes[2][i] = cMFSSTimes.Average();
+                 MFSSTimes[i] = cMFSSTimes.Average();
+
+
+
+             }
 
 //                Line = "\\midrule";
 //                F.WriteLine(Line);
-                //            Avg.Average();
+             //            Avg.Average();
 
 
-                Line ="$" + TestInstance.NumItems + " \\times " + TestInstance.NumConstraints + "$ &";
+             Line ="$" + TestInstance.NumItems + " \\times " + TestInstance.NumConstraints + "$ &";
 
-                for (int i = 0; i < 3; i++) {
+             for (int i = 0; i < 3; i++) {
 
-                    average = MethodTimes[i].Average();
-                    sumOfSquaresOfDifferences = MethodTimes[i].Select(val => (val - average) * (val - average)).Sum();
-                    sd = Math.Sqrt(sumOfSquaresOfDifferences / MethodTimes[i].Length);
-
-
-                    Line += average.ToString("0.0") + " & ";
+                 average = MethodTimes[i].Average();
+                 sumOfSquaresOfDifferences = MethodTimes[i].Select(val => (val - average) * (val - average)).Sum();
+                 sd = Math.Sqrt(sumOfSquaresOfDifferences / MethodTimes[i].Length);
 
 
-                }
-
-                for (int i = 0; i < 3; i++)
-                {
-
-                    average = MethodTimes[i].Average();
-                    sumOfSquaresOfDifferences = MethodTimes[i].Select(val => (val - average) * (val - average)).Sum();
-                    sd = Math.Sqrt(sumOfSquaresOfDifferences / MethodTimes[i].Length);
+                 Line += average.ToString("0.0") + " & ";
 
 
-                    Line += sd.ToString("0.0");
+             }
 
-                    if (i < 2)
-                        Line += " & ";
-                    else
-                        Line += "\\\\";
+             for (int i = 0; i < 3; i++)
+             {
 
-                }
+                 average = MethodTimes[i].Average();
+                 sumOfSquaresOfDifferences = MethodTimes[i].Select(val => (val - average) * (val - average)).Sum();
+                 sd = Math.Sqrt(sumOfSquaresOfDifferences / MethodTimes[i].Length);
+
+
+                 Line += sd.ToString("0.0");
+
+                 if (i < 2)
+                     Line += " & ";
+                 else
+                     Line += "\\\\";
+
+             }
 
 
 
-                F.WriteLine(Line);
+             F.WriteLine(Line);
 
-            }
-            F.Close();
-        }
-           */
+         }
+         F.Close();
+     }
+        */
 
         long GetValueForTime(long iTime, List<long[]> TimeValues)
         {
@@ -850,79 +914,242 @@ namespace KPF
             return Result;
         }
 
-
-        public void LoadAllRuns(string FileBase, string Directory, string ParamsString, string OutputDir, int NumInstanaces, int BestKnown)
-        {
-            string[] lines;
-            string FileName;
-            string[] words;
-            string temp;
-            List<long[]>[] Solutions = new List<long[]>[10];
-            long[] tempData;
-            List<long> AllTimes = new List<long>();
-            List<double> AllValuesForTime = new List<double>();
-
-            for (int i = 0; i < NumInstanaces; i++)
-                Solutions[i] = new List<long[]>();
-
-            for (int i = 0; i < NumInstanaces; i++)
-            {
-
-
-                FileName = Directory + "Res_" +ParamsString + "\\\\"+ FileBase + i + ".txt";
-                lines = System.IO.File.ReadAllLines(FileName);
-
-                for (int j = 0; j < lines.Length; j++)
+        /*
+                public void LoadAllRuns(string FileBase, string Directory, string ParamsString, string OutputDir, int NumInstanaces, int BestKnown)
                 {
-                    temp = lines[j];
-                    words = temp.Split(' ');
+                    string[] lines;
+                    string FileName;
+                    string[] words;
+                    string temp;
+                    List<long[]>[] Solutions = new List<long[]>[10];
+                    long[] tempData;
+                    List<long> AllTimes = new List<long>();
+                    List<double> AllValuesForTime = new List<double>();
 
-                    tempData = new long[2];
+                    for (int i = 0; i < NumInstanaces; i++)
+                        Solutions[i] = new List<long[]>();
 
-                    tempData[0] = Convert.ToInt64(words[2]) ;
-                    tempData[1] = BestKnown - Convert.ToInt64(words[0]);
-
-                    if (Solutions[i].Count == 0)
-                        Solutions[i].Add( tempData);
-                    else
+                    for (int i = 0; i < NumInstanaces; i++)
                     {
-                        if (Solutions[i][Solutions[i].Count - 1][1] != tempData[1])
-                            Solutions[i].Add(tempData);
+
+
+                        FileName = Directory + "Res_" +ParamsString + "\\\\"+ FileBase + i + ".txt";
+                        lines = System.IO.File.ReadAllLines(FileName);
+
+                        for (int j = 0; j < lines.Length; j++)
+                        {
+                            temp = lines[j];
+                            words = temp.Split(' ');
+
+                            tempData = new long[2];
+
+                            tempData[0] = Convert.ToInt64(words[2]) ;
+                            tempData[1] = BestKnown - Convert.ToInt64(words[0]);
+
+                            if (Solutions[i].Count == 0)
+                                Solutions[i].Add( tempData);
+                            else
+                            {
+                                if (Solutions[i][Solutions[i].Count - 1][1] != tempData[1])
+                                    Solutions[i].Add(tempData);
+                            }
+
+                            if (!AllTimes.Contains(tempData[0]))
+                                AllTimes.Add(tempData[0]);
+                        }
                     }
 
-                    if (!AllTimes.Contains(tempData[0]))
-                        AllTimes.Add(tempData[0]);
+                    AllTimes.Sort();
+
+                    for (int i = 0; i < AllTimes.Count; i++)
+                    {
+
+                        AllValuesForTime.Add(0);
+
+                        for (int j = 0; j < 10; j++)
+                        {
+
+                            AllValuesForTime[i] += GetValueForTime(AllTimes[i], Solutions[j]);
+                        }
+
+                        AllValuesForTime[i] /= NumInstanaces;
+                    }
+
+
+                    StreamWriter tFile = new StreamWriter(OutputDir + FileBase + "avg_" + ParamsString+ ".txt");
+
+                    for (int i = 0; i < AllTimes.Count; i++)
+                    {
+
+                        tFile.WriteLine((AllTimes[i] / (float)1000) + " " + AllValuesForTime[i]);
+                    }
+                    tFile.Close();
+
+
                 }
-            }
+        */
 
-            AllTimes.Sort();
+        public void SolvePopsizeAll()
+        {
 
-            for (int i = 0; i < AllTimes.Count; i++)
+            KPFProblem TestProblem;
+            KPFInstance TestInstance = new KPFInstance();
+
+            int[] PopupationSize = { 50, 100, 200, 500 };
+            int MaxBinVar =250;
+            double LimitPerFix = 0.1;
+            int MaxGeneratedSolutions = 500000;
+            int MaxStag = 50;
+            long TimeLimit = 600;
+            int K = 5;
+
+
+
+            InitFiles();
+            string cResDirectory;
+            string configString = "Res_P" + PopupationSize + "_MI" + MaxBinVar + "_TLF" + LimitPerFix + "_K" + K + "_M" + MaxStag;
+            string OutFile;
+            string tFileName;
+            //            int s = 1;
+            string cDirectory;
+            string[] filePaths;
+            int size = 1000;
+
+
+            for (int ip = 0; ip < PopupationSize.Length; ip++)
             {
-
-                AllValuesForTime.Add(0);
-
-                for (int j = 0; j < 10; j++)
+                for (int s = 0; s < 10; s++)
                 {
+                    //                foreach (int size in mProbleSizes)
+                    //                {
+                    foreach (string ptype in mProbleTypes)
+                    {
 
-                    AllValuesForTime[i] += GetValueForTime(AllTimes[i], Solutions[j]);
+                        configString = "Res_P" + PopupationSize[ip] + "_MI" + MaxBinVar + "_TLF" + LimitPerFix + "_K" + K + "_M" + MaxStag;
+
+                        cResDirectory = mInstancesDirectory + configString + "\\\\";
+                        if (!System.IO.Directory.Exists(cResDirectory))
+                        {
+                            System.IO.Directory.CreateDirectory(cResDirectory);
+                        }
+
+
+
+
+                        cDirectory = mInstancesDirectory + ptype + "\\\\" + size + "\\\\";
+                        filePaths = Directory.GetFiles(cDirectory);
+
+                        for (int fi = 0; fi < 1; fi++)
+                        {
+
+                            TestInstance = new KPFInstance();
+                            TestInstance.Load(filePaths[fi]);
+                            TestProblem = new KPFProblem(TestInstance);
+                            TestProblem.InitRandom(s);
+                            //   OutFile = mInstancesDirectory+"Results\\\\" + "Res_" + ptype + "_" + size + "_"+fi+".txt" ;
+                            OutFile = cResDirectory + "Res_" + ptype + "_" + size + "_" + fi + "_" + s + ".txt";
+                            // TestInstance.LoadOptimum(OptFile, i);
+
+
+
+                            //                        TimeLimit = size/2;
+
+                            TestProblem.TimeLimit = TimeLimit * 1000;
+
+                            if (File.Exists(OutFile))
+                                continue;
+                            TestProblem.SolveFixSet(PopupationSize[ip], K, MaxGeneratedSolutions, MaxBinVar, MaxStag, LimitPerFix);
+                            TestProblem.SaveIntermediate(OutFile);
+
+                        }
+
+                    }
                 }
-
-                AllValuesForTime[i] /= NumInstanaces;
             }
-
-
-            StreamWriter tFile = new StreamWriter(OutputDir + FileBase + "avg_" + ParamsString+ ".txt");
-
-            for (int i = 0; i < AllTimes.Count; i++)
-            {
-
-                tFile.WriteLine((AllTimes[i] / (float)1000) + " " + AllValuesForTime[i]);
-            }
-            tFile.Close();
-
-
         }
+
+        public void SolveMaxBinVarAll()
+        {
+
+            KPFProblem TestProblem;
+            KPFInstance TestInstance = new KPFInstance();
+
+            int PopupationSize = 200;
+            int[] MaxBinVar = { 250, 500, 1000 };
+            double LimitPerFix = 0.1;
+            int MaxGeneratedSolutions = 500000;
+            int MaxStag = 50;
+            long TimeLimit = 600;
+            int K = 5;
+
+
+
+            InitFiles();
+            string cResDirectory;
+            string configString = "Res_P" + PopupationSize + "_MI" + MaxBinVar + "_TLF" + LimitPerFix + "_K" + K + "_M" + MaxStag;
+            string OutFile;
+            string tFileName;
+            //            int s = 1;
+            string cDirectory;
+            string[] filePaths;
+            int size = 1000;
+
+
+            for (int im = 0; im < MaxBinVar.Length; im++)
+            {
+                for (int s = 0; s < 10; s++)
+                {
+                    //                foreach (int size in mProbleSizes)
+                    //                {
+                    foreach (string ptype in mProbleTypes)
+                    {
+
+                        configString = "Res_P" + PopupationSize + "_MI" + MaxBinVar[im] + "_TLF" + LimitPerFix + "_K" + K + "_M" + MaxStag;
+
+                        cResDirectory = mInstancesDirectory + configString + "\\\\";
+                        if (!System.IO.Directory.Exists(cResDirectory))
+                        {
+                            System.IO.Directory.CreateDirectory(cResDirectory);
+                        }
+
+
+
+
+                        cDirectory = mInstancesDirectory + ptype + "\\\\" + size + "\\\\";
+                        filePaths = Directory.GetFiles(cDirectory);
+
+                        for (int fi = 0; fi < 1; fi++)
+                        {
+
+                            TestInstance = new KPFInstance();
+                            TestInstance.Load(filePaths[fi]);
+                            TestProblem = new KPFProblem(TestInstance);
+                            TestProblem.InitRandom(s);
+                            //   OutFile = mInstancesDirectory+"Results\\\\" + "Res_" + ptype + "_" + size + "_"+fi+".txt" ;
+                            OutFile = cResDirectory + "Res_" + ptype + "_" + size + "_" + fi + "_" + s + ".txt";
+                            // TestInstance.LoadOptimum(OptFile, i);
+
+
+
+                            //                        TimeLimit = size/2;
+
+                            TestProblem.TimeLimit = TimeLimit * 1000;
+
+                            if (File.Exists(OutFile))
+                                continue;
+                            TestProblem.SolveFixSet(PopupationSize, K, MaxGeneratedSolutions, MaxBinVar[im], MaxStag, LimitPerFix);
+                            TestProblem.SaveIntermediate(OutFile);
+
+                        }
+
+                    }
+                }
+            }
+        }
+
+
+
+
 
 
     }

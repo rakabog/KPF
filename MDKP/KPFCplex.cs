@@ -62,13 +62,13 @@ namespace KPF
 
                     switch (Fix.mStates[i])
                     {
-                        case KPFSolution.MDKPItemStatus.Unknown:
+                        case KPFSolution.KPFItemStatus.Unknown:
                             break;
-                        case KPFSolution.MDKPItemStatus.NotUsing:
+                        case KPFSolution.KPFItemStatus.NotUsing:
                             expr.AddTerm(1, x[i]);
                             cplex.AddEq(0, expr);
                             break;
-                        case KPFSolution.MDKPItemStatus.Using:
+                        case KPFSolution.KPFItemStatus.Using:
                             expr.AddTerm(1, x[i]);
                             cplex.AddEq(1, expr);
                             break;
@@ -150,7 +150,8 @@ namespace KPF
 
             for (int i = 0; i < mInstance.NumForfiets; i++)
             {
-                v[i].Name = "v" + mInstance.Forfiets[i].mItem1 + "_"+ mInstance.Forfiets[i].mItem2;
+       //         v[i].Name = "v" + mInstance.Forfiets[i].mItem1 + "_"+ mInstance.Forfiets[i].mItem2;
+                v[i].Name = "v" + i;
             }
 
 
@@ -240,7 +241,7 @@ namespace KPF
                     {
 
                         startvar[i] = x[i];
-                        if (Fix.mHotStart.ItemStatuses[i] == KPFSolution.MDKPItemStatus.Using)
+                        if (Fix.mHotStart.ItemStatuses[i] == KPFSolution.KPFItemStatus.Using)
                             startval[i] = 1;
                         else
                             startval[i] = 0;
@@ -250,7 +251,7 @@ namespace KPF
                 }
             }
 
-              cplex.ExportModel("lpex1.lp");
+//              cplex.ExportModel("lpex1.lp");
 
             if (mTimeLimit > 0)
                 cplex.SetParam(Cplex.Param.TimeLimit, mTimeLimit);
@@ -262,7 +263,7 @@ namespace KPF
             {
                 mSolution = new KPFSolution(mInstance);
 
-                Console.WriteLine("Solution value: " + cplex.ObjValue + "  Thread :" + Thread.CurrentThread.ManagedThreadId);
+                Console.WriteLine("Solution value: " + cplex.ObjValue + "  Thread :" + Thread.CurrentThread.ManagedThreadId + " Time Limit:" + mTimeLimit);
 
                 double[] xres = cplex.GetValues(x);
 
@@ -272,12 +273,12 @@ namespace KPF
                     if ((int)Math.Round(xres[i]) == 1)
                     {
                         //                        System.Console.WriteLine("x" + i + " " + xres[i]);
-                        mSolution.SetStatusItem(i, KPFSolution.MDKPItemStatus.Using);
+                        mSolution.SetStatusItem(i, KPFSolution.KPFItemStatus.Using);
                     }
                     else
                     {
 
-                        mSolution.SetStatusItem(i, KPFSolution.MDKPItemStatus.NotUsing);
+                        mSolution.SetStatusItem(i, KPFSolution.KPFItemStatus.NotUsing);
                     }
                 }
             }

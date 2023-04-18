@@ -39,8 +39,9 @@ namespace KPF
 
 
             KPFExperiments Exp = new KPFExperiments();
-            //                        Exp.GenerateTables("Table.txt");
-            //             Exp.SolveAll();
+//                                    Exp.GenerateTables("Table.txt");
+                         Exp.SolveMaxBinVarAll();
+                         Exp.SolvePopsizeAll();
 
             //                        Exp.SolveParamTest();
             //   Exp.GenerateTimeTable("TableTime.txt");
@@ -75,27 +76,39 @@ namespace KPF
             Exp.LoadAllRuns("Resmknapcb5_0_50_", "c:\\primeri\\MDKP\\", "P200_MI25_TLF0.1_K5_M50", ".\\Res\\", 10, 59187);
             */
 
-            KPFInstance Instance = new KPFInstance();
-
-            //            Instance.Load("c:\\primeri\\KPF\\O\\500\\02_id_101_objs_500_size_1500_sets_3000_maxNumConflicts_2_maxCost_15_seme_2097.txt");
-//            Instance.Load("c:\\primeri\\KPF\\O\\500\\02_id_102_objs_500_size_1500_sets_3000_maxNumConflicts_2_maxCost_15_seme_1518.txt");
+//            KPFInstance Instance = new KPFInstance();
+//            ;
 
 
-//            Instance.Load("c:\\primeri\\KPF\\LK\\500\\01_id_101b_objs_500_size_1500_sets_3000_maxNumConflicts_2_maxCost_15_seme_2097.txt");
-            Instance.Load("c:\\primeri\\KPF\\LK\\1000\\01_id_116b_objs_1000_size_3000_sets_6000_maxNumConflicts_2_maxCost_15_seme_2558.txt");
 
 
-            KPFCplex Solver = new KPFCplex(Instance);
+            //            Instance.Load("c:\\primeri\\KPF\\MF\\500\\02_id_102_objs_500_size_1500_sets_3000_maxNumConflicts_2_maxCost_15_seme_1518.txt");
 
-//            Solver.Solve();
+    //        Instance.Load("c:\\primeri\\KPF\\MF\\500\\01_id_1101_objs_500_size_1500_sets_4000_maxNumConflicts_2_maxCost_15_seme_2097.txt");
+            
+                      //            Instance.Load("c:\\primeri\\KPF\\LK\\500\\01_id_101b_objs_500_size_1500_sets_3000_maxNumConflicts_2_maxCost_15_seme_2097.txt");
+                      //            Instance.Load("c:\\primeri\\KPF\\LK\\1000\\01_id_116b_objs_1000_size_3000_sets_6000_maxNumConflicts_2_maxCost_15_seme_2558.txt");
+//                                   Instance.Load("c:\\primeri\\KPF\\MF\\1000\\01_id_1116_objs_1000_size_3000_sets_8000_maxNumConflicts_2_maxCost_15_seme_2558.txt");
+                      /*
+
+                                  KPFProblem Problem = new KPFProblem(Instance);
+                                  Problem.RCLSize = 5;
+                                  Problem.SolveGreedy();
+                      /**/
 
 
-            KPFProblem Problem = new KPFProblem(Instance);
-            Problem.TimeLimit = 2000 * 1000;
-            Problem.InitRandom(1);
-            Problem.TimeLimit = 600 * 1000;
-            Problem.SolveFixSet(50, 5, 10000,250, 100, 1);
+                      //            KPFCplex Solver = new KPFCplex(Instance);
+                      //            Exp.SolveAll();
 
+                      //             Solver.Solve();
+            /*          
+                      KPFProblem Problem = new KPFProblem(Instance);
+                      Problem.TimeLimit = 2000 * 1000;
+                      Problem.InitRandom(1);
+                      Problem.TimeLimit = 600 * 1000;
+                      Problem.RCLSize = 5;    
+                      Problem.SolveFixSet(100, 5, 10000,250, 50, 0.1);
+            /*          */
 
 
 

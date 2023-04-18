@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ILOG.CPLEX;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -7,6 +8,8 @@ using System.Threading.Tasks;
 
 namespace KPF
 {
+
+    
     internal class KPFProblem
     {
 
@@ -23,10 +26,18 @@ namespace KPF
         Stopwatch mStopWatch;
         int mNumberOfSolutionsGenerated;
         long mTimeLimit;
+        int mRCLSize;
+        RCL<int> mRCL;
 
         public long TimeLimit{
             get { return mTimeLimit;}
             set { mTimeLimit = value; }
+        }
+
+        public int RCLSize
+        {
+            get { return mRCLSize; }
+            set { mRCLSize = value; mRCL = new RCL<int>(mRCLSize); }
         }
         public KPFSolution Solution
         {
@@ -35,6 +46,60 @@ namespace KPF
         public KPFSolution BestSolution
         {
             get { return mBestSolution; }
+        }
+
+
+        public int GetNumBinForFixedSetSize(int iSize) {
+
+
+            double NumBinItems = mInstance.NumItems - iSize;
+            double NumCombTotal = mInstance.NumItems * (mInstance.NumItems - 1) / 2;
+            double NumRemove = (mInstance.NumItems - iSize) * iSize + (iSize * (iSize - 1))/2;
+               
+
+            return (int)Math.Round(NumBinItems + mInstance.NumForfiets*(1- NumRemove / NumCombTotal));
+        
+        }
+        public int GetFixedSetSizeForNumBinVar(int MaxBinVar) {
+
+            int MinFix = mInstance.NumItems;
+            int cSize;
+
+            for (int i = 0; i < mInstance.NumItems; i++) {
+
+                cSize = GetNumBinForFixedSetSize(i);
+
+                if ((cSize<MaxBinVar) && (i < MinFix)){
+                    MinFix = i;
+                }
+            }
+
+            return MinFix;
+        }
+
+
+
+        int GetHeuristic()
+        {
+            int cValue;
+            int Select;
+            if (mSolution.AvaillableItems.Count == 0)
+                return -1;
+
+            mRCL = new RCL<int>(mRCLSize);
+
+
+            int counter = 0;
+            foreach (int iItem in mSolution.AvaillableItems)
+            {
+                if((mSolution.Contributions[iItem]>0) && mSolution.CanAdd(iItem))
+                
+                    mRCL.Add(iItem, mSolution.Contributions[iItem]);
+            }
+
+            if (mRCL.CurrentSize == 0)
+                return -1;
+            return mRCL.GetCandidate(mGenerator.Next() % mRCL.CurrentSize);
         }
 
 
@@ -102,6 +167,28 @@ namespace KPF
         }
 
 
+        public void SolveGreedy() {
+
+
+            mSolution = new KPFSolution(mInstance);
+            mSolution.InitGreedy();
+            int tIndex;
+                       
+
+            while (true) {
+
+                if (mSolution.AvaillableItems.Count == 0)
+                    break;
+
+                tIndex = GetHeuristic();
+                if (tIndex == -1)
+                    break;
+                if (!mSolution.AddItem(tIndex))
+                    break;
+            }
+                
+        }
+
         public void SolveRandom() {
 
             int TotalWeight;
@@ -139,15 +226,16 @@ namespace KPF
         
         }
         
+        
 
-        public void SolveFixSet(int PopulationSize, int K, int MaxIterations, int iMaxItems, int MaxStag, double MaxCalcTime) {
+        public void SolveFixSet(int PopulationSize, int K, int MaxIterations, int iMaxBinVar, int MaxStag, double MaxCalcTime) {
 
             List<int> SolutionIndexes= new List<int>();
             List<int> SelIndexes = new List<int>();
             int BaseIndex;
             int cK ;
             KPFSolution BaseSolution;
-            KPFSolution.MDKPItemStatus[] Fix;
+            KPFSolution.KPFItemStatus[] Fix;
             MDKPCplexEXT cFix = new MDKPCplexEXT();
             KPFCplex Solver;
             int Stag =0;
@@ -164,13 +252,17 @@ namespace KPF
 
             for (int i = 0; i < PopulationSize; i++) {
 
+                Console.WriteLine("Solution  " +i);
                 SolveRandom();
+//                SolveGreedy();
                 CheckBest();
                 mSolutionTracker.AddSolution(mSolution);
                 
             }
 
-            mNumberOfSolutionsGenerated = 0;
+
+
+            int cFixSize = GetFixedSetSizeForNumBinVar(iMaxBinVar);
             while (mNumberOfSolutionsGenerated < MaxIterations) {
 
 
@@ -200,7 +292,7 @@ namespace KPF
                 }
 
 
-                 Fix = mSolutionTracker.GetFix(BaseIndex, SelIndexes, mInstance.NumItems - iMaxItems, mGenerator);
+                 Fix = mSolutionTracker.GetFix(BaseIndex, SelIndexes,  cFixSize, mGenerator);
 
 
                 Solver = new KPFCplex(mInstance);
@@ -246,6 +338,8 @@ namespace KPF
                 if (mBestSolution.Objective == mInstance.Optimal)
                     break;
                 if (mStopWatch.ElapsedMilliseconds > mTimeLimit)
+                    break;
+                if (cMaxCalcTime > 1.6)
                     break;
             }
         
